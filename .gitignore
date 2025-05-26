@@ -1,0 +1,67 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+Pipfile.lock
+
+# Environment variable files
+.env
+*.env
+
+# macOS / Linux system files
+.DS_Store
+Thumbs.db
+
+# Python cache / logs
+*.log
+*.sqlite3
+
+# VS Code settings
+.vscode/
+
+# PyCharm
+.idea/
+
+# Coverage reports
+htmlcov/
+.coverage
+.tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Google Ads API credentials
+google-ads.yaml
+google-ads.yaml.example
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Mypy, Pylint, Pyright
+.mypy_cache/
+.pyright/
+pylint-report.txt
+pylint-global.txt
+
+# pytest
+.pytest_cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# FAISS or custom data folders (if any)
+data/
+index/
