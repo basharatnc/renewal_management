@@ -105,13 +105,82 @@ def create_renewal_opportunity(
             "details": e.response.json() if e.response else str(e)
         }
 
-def update_opportunity(opportunity_id: str, field: str, value: str) -> Dict:
-    return {
-        "status": "updated",
-        "opportunity_id": opportunity_id,
-        "updated_field": field,
-        "new_value": value
+def update_opportunity(
+    database_id: str,
+    insured_first_name: Optional[str] = None,
+    insured_last_name: Optional[str] = None,
+    line_of_business_name: Optional[str] = None,
+    needed_by: Optional[str] = None,
+    opportunity_stage_name: Optional[str] = None,
+    current_stage_due_date: Optional[str] = None,
+    referral_source_name: Optional[str] = None,
+    referral_source_contact_name: Optional[str] = None,
+    win_probability: Optional[str] = None,
+    agency_commission: Optional[float] = None,
+    assigned_to: Optional[List[str]] = None,
+    description: Optional[str] = None,
+    insured_database_id: Optional[str] = None,
+    insured_email: Optional[str] = None,
+    insured_commercial_name: Optional[str] = None,
+    policy_numbers: Optional[List[str]] = None,
+    cost_of_lead: Optional[float] = None
+) -> Dict:
+    try:
+        access_token = get_access_token()
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to retrieve access token.",
+            "details": str(e)
+        }
+
+    url = "https://api.nowcerts.com/api/Zapier/InsertOpportunity"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
     }
+
+    body = {
+        "database_id": database_id
+    }
+
+    optional_fields = {
+        "insured_first_name": insured_first_name,
+        "insured_last_name": insured_last_name,
+        "line_of_business_name": line_of_business_name,
+        "needed_by": needed_by,
+        "opportunity_stage_name": opportunity_stage_name,
+        "current_stage_due_date": current_stage_due_date,
+        "referral_source_name": referral_source_name,
+        "referral_source_contact_name": referral_source_contact_name,
+        "win_probability": win_probability,
+        "agency_commission": agency_commission,
+        "assigned_to": assigned_to,
+        "description": description,
+        "insured_database_id": insured_database_id,
+        "insured_email": insured_email,
+        "insured_commercial_name": insured_commercial_name,
+        "policy_numbers": policy_numbers,
+        "cost_of_lead": cost_of_lead
+    }
+
+    body.update({k: v for k, v in optional_fields.items() if v is not None})
+
+    try:
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status()
+        return {
+            "status": "updated",
+            "database_id": database_id,
+            "updated_fields": body,
+            "response": response.json()
+        }
+    except requests.RequestException as e:
+        return {
+            "status": "error",
+            "message": "Opportunity update failed.",
+            "details": e.response.json() if e.response else str(e)
+        }
 
 def add_note_to_opportunity(opportunity_id: str, note: str) -> Dict:
     return {
