@@ -197,15 +197,66 @@ def add_log_to_opportunity(opportunity_id: str, log: str) -> Dict:
         "log": log
     }
 
-def add_task_to_opportunity(opportunity_id: str, task_title: str, due_date: str) -> Dict:
-    return {
-        "status": "task_added",
-        "opportunity_id": opportunity_id,
-        "task": {
-            "title": task_title,
-            "due_date": due_date
+from typing import Optional, Dict, List
+
+def add_task_to_opportunity(
+    opportunity_database_id: str,
+    title: str,
+    due_date: str,
+    description: Optional[str] = None,
+    status: Optional[str] = "Not Started",
+    completion: Optional[int] = 0,
+    priority: Optional[str] = "medium",
+    assigned_to: Optional[List[str]] = None,
+    insured_database_id: Optional[str] = None,
+    creator_name: Optional[str] = "Opportunity Agent"
+) -> Dict:
+    """
+    Adds a detailed task to a specified opportunity in NowCerts using the InsertTask endpoint.
+    """
+    try:
+        access_token = get_access_token()
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to retrieve access token.",
+            "details": str(e)
         }
+
+    url = "https://api.nowcerts.com/api/Zapier/InsertTask"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
     }
+
+    body = {
+        "CreatorName": creator_name,
+        "title": title,
+        "description": description or "",
+        "status": status,
+        "completion": completion,
+        "priority": priority,
+        "due_date": due_date,
+        "assigned_to": assigned_to or [],
+        "opportunity_database_id": opportunity_database_id,
+        "insured_database_id": insured_database_id
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status()
+        return {
+            "status": "task_added",
+            "opportunity_database_id": opportunity_database_id,
+            "task": body,
+            "response": response.json()
+        }
+    except requests.RequestException as e:
+        return {
+            "status": "error",
+            "message": "Failed to add task to opportunity.",
+            "details": e.response.json() if e.response else str(e)
+        }
 
 def get_filtered_opportunities(
     opportunity_stage_name: Optional[str] = None,
