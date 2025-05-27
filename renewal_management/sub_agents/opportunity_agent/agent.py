@@ -1,6 +1,7 @@
 from google.adk.agents import Agent
 from typing import Optional, Dict, List
 import requests
+from urllib.parse import quote
 
 # --- Internal Auth Function ---
 
@@ -206,16 +207,72 @@ def add_task_to_opportunity(opportunity_id: str, task_title: str, due_date: str)
         }
     }
 
-def get_filtered_opportunities(status: Optional[str] = None, client_name: Optional[str] = None, renewal_before: Optional[str] = None) -> Dict:
-    return {
-        "status": "fetched",
-        "filters": {
-            "status": status,
-            "client_name": client_name,
-            "renewal_before": renewal_before
-        },
-        "opportunities": []
+def get_filtered_opportunities(
+    opportunity_stage_name: Optional[str] = None,
+    insured_first_name: Optional[str] = None,
+    insured_last_name: Optional[str] = None,
+    needed_by_before: Optional[str] = None,
+    skip: int = 0,
+    top: int = 10
+) -> Dict:
+    """
+    Fetch opportunities from NowCerts API using supported filter fields.
+    """
+    try:
+        access_token = get_access_token()
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to retrieve access token.",
+            "details": str(e)
+        }
+
+    base_url = "https://api.nowcerts.com/api/OpportunitiesList"
+
+    # Build $filter string using Insert/Update Opportunity fields
+    filters = []
+    if opportunity_stage_name:
+        filters.append(f"OpportunityStageName eq '{opportunity_stage_name}'")
+    if insured_first_name:
+        filters.append(f"InsuredFirstName eq '{insured_first_name}'")
+    if insured_last_name:
+        filters.append(f"InsuredLastName eq '{insured_last_name}'")
+    if needed_by_before:
+        filters.append(f"NeededBy lt {needed_by_before}")  # Date must be formatted as yyyy-MM-dd
+
+    filter_string = " and ".join(filters)
+    encoded_filter = quote(filter_string) if filter_string else ""
+
+    # Final URL with pagination and filtering
+    query = f"?$count=true&$orderby=LineOfBusinessName asc&$skip={skip}&$top={top}"
+    if encoded_filter:
+        query += f"&$filter={encoded_filter}"
+
+    full_url = f"{base_url}(){query}"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}"
     }
+
+    try:
+        response = requests.get(full_url, headers=headers)
+        response.raise_for_status()
+        return {
+            "status": "fetched",
+            "filters": {
+                "opportunity_stage_name": opportunity_stage_name,
+                "insured_first_name": insured_first_name,
+                "insured_last_name": insured_last_name,
+                "needed_by_before": needed_by_before
+            },
+            "opportunities": response.json()
+        }
+    except requests.RequestException as e:
+        return {
+            "status": "error",
+            "message": "Failed to fetch opportunities.",
+            "details": e.response.json() if e.response else str(e)
+        }
 
 def get_opportunity_details(opportunity_id: str) -> Dict:
     return {
