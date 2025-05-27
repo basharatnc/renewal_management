@@ -328,6 +328,7 @@ def get_filtered_opportunities(
 def get_opportunity_details(opportunity_id: str) -> Dict:
     """
     Fetches opportunity details by filtering using the opportunity ID.
+    Returns both raw details and a bullet-style formatted string.
     """
     try:
         access_token = get_access_token()
@@ -338,26 +339,53 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
             "details": str(e)
         }
 
-    url = (
-        "https://api.nowcerts.com/api/OpportunitiesList"
-        f"?$filter=id eq {opportunity_id}"
-        "&$count=true&$orderby=id desc&$skip=0&$top=10"
-    )
-
+    base_url = "https://api.nowcerts.com/api/OpportunitiesList"
+    params = {
+        "$filter": f"id eq {opportunity_id}",
+        "$count": "true",
+        "$orderby": "id desc",
+        "$skip": "0",
+        "$top": "10"
+    }
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(base_url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-        if isinstance(data, list) and data:
+        print("Final URL:", response.url)
+
+        if isinstance(data, dict) and "value" in data and data["value"]:
+            opportunity = data["value"][0]
+
+            formatted_output = "\n".join([
+                f"• Line of Business: {opportunity.get('lineOfBusinessName')}",
+                f"• Opportunity Stage: {opportunity.get('opportunityStageName')}",
+                f"• Needed By: {opportunity.get('neededBy')}",
+                f"• Current Stage Due Date: {opportunity.get('currentStageDueDate')}",
+                f"• Referral Source: {opportunity.get('referralSourceName')}",
+                f"• Referral Contact: {opportunity.get('referralSourceContactName')}",
+                f"• Win Probability: {opportunity.get('winProbability')}",
+                f"• Agency Commission: {opportunity.get('agencyCommission')}%",
+                f"• Assigned To: {', '.join(opportunity.get('assignedTo', []))}",
+                f"• Description: {opportunity.get('description')}",
+                f"• Insured Commercial Name: {opportunity.get('insuredCommercialName')}",
+                f"• Insured Email: {opportunity.get('insuredEmail')}",
+                f"• Policy Numbers: {', '.join(opportunity.get('policyNumbers', []))}",
+                f"• Created From Renewal: {opportunity.get('createdFromRenewal')}",
+                f"• Created On: {opportunity.get('createDate')}",
+                f"• Last Changed On: {opportunity.get('changeDate')}",
+                f"• Last Changed By: {opportunity.get('lastChangeUserName')}"
+            ])
+
             return {
                 "status": "fetched",
                 "opportunity_id": opportunity_id,
-                "details": data[0]  # return the first matching result
+                "details": opportunity,
+                "formatted": formatted_output
             }
         else:
             return {
@@ -365,13 +393,14 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
                 "opportunity_id": opportunity_id,
                 "message": "No opportunity found with the given ID."
             }
+
     except requests.RequestException as e:
         return {
             "status": "error",
             "message": "Failed to fetch opportunity details.",
             "details": e.response.json() if e.response else str(e)
         }
-
+    
 # --- Opportunity Agent Definition ---
 
 opportunity_agent = Agent(
