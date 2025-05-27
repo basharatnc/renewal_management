@@ -275,15 +275,51 @@ def get_filtered_opportunities(
         }
 
 def get_opportunity_details(opportunity_id: str) -> Dict:
-    return {
-        "status": "fetched",
-        "opportunity_id": opportunity_id,
-        "details": {
-            "client_name": "John Doe",
-            "renewal_date": "2025-06-30",
-            "premium": 1200.0
+    """
+    Fetches opportunity details by filtering using the opportunity ID.
+    """
+    try:
+        access_token = get_access_token()
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to retrieve access token.",
+            "details": str(e)
         }
+
+    url = (
+        "https://api.nowcerts.com/api/OpportunitiesList"
+        f"?$filter=id eq {opportunity_id}"
+        "&$count=true&$orderby=id desc&$skip=0&$top=10"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
     }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        if isinstance(data, list) and data:
+            return {
+                "status": "fetched",
+                "opportunity_id": opportunity_id,
+                "details": data[0]  # return the first matching result
+            }
+        else:
+            return {
+                "status": "not_found",
+                "opportunity_id": opportunity_id,
+                "message": "No opportunity found with the given ID."
+            }
+    except requests.RequestException as e:
+        return {
+            "status": "error",
+            "message": "Failed to fetch opportunity details.",
+            "details": e.response.json() if e.response else str(e)
+        }
 
 # --- Opportunity Agent Definition ---
 
