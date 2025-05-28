@@ -2,6 +2,8 @@ from google.adk.agents import Agent
 from typing import Optional, Dict, List
 import requests
 from urllib.parse import quote
+import json
+from datetime import datetime
 
 # --- Internal Auth Function ---
 
@@ -105,12 +107,6 @@ def create_renewal_opportunity(
             "message": "Opportunity creation failed.",
             "details": e.response.json() if e.response else str(e)
         }
-
-
-from typing import Dict, List, Optional
-import requests
-import json
-from datetime import datetime
 
 def update_opportunity(
     database_id: str,
