@@ -106,28 +106,41 @@ def create_renewal_opportunity(
             "details": e.response.json() if e.response else str(e)
         }
 
+
+from typing import Dict, List, Optional
+import requests
+import json
+from datetime import datetime
+
 def update_opportunity(
     database_id: str,
-    insured_first_name: Optional[str] = None,
-    insured_last_name: Optional[str] = None,
-    line_of_business_name: Optional[str] = None,
-    needed_by: Optional[str] = None,
-    opportunity_stage_name: Optional[str] = None,
-    current_stage_due_date: Optional[str] = None,
-    referral_source_name: Optional[str] = None,
-    referral_source_contact_name: Optional[str] = None,
-    win_probability: Optional[str] = None,
-    agency_commission: Optional[float] = None,
-    assigned_to: Optional[List[str]] = None,
-    description: Optional[str] = None,
-    insured_database_id: Optional[str] = None,
-    insured_email: Optional[str] = None,
-    insured_commercial_name: Optional[str] = None,
-    policy_numbers: Optional[List[str]] = None,
-    cost_of_lead: Optional[float] = None
+    created_from_renewal: bool,
+    line_of_business_name: str,
+    needed_by: str,
+    opportunity_stage_name: str,
+    current_stage_due_date: str,
+    referral_source_name: str,
+    referral_source_contact_name: str,
+    win_probability: str,
+    agency_commission: float,
+    assigned_to: List[str],
+    description: str,
+    insured_database_id: str,
+    insured_email: str,
+    insured_first_name: str,
+    insured_last_name: str,
+    insured_commercial_name: str,
+    policy_numbers: List[str],
+    cost_of_lead: float
 ) -> Dict:
+    """
+    Updates an existing opportunity in NowCerts via the InsertOpportunity endpoint.
+    Requires a valid database_id to update the specified opportunity fields.
+    All fields are required to match the create function's behavior and ensure compatibility.
+    """
     try:
         access_token = get_access_token()
+        print(f"Access Token (partial): {access_token[:10]}...")  # Log partial token for debugging
     except Exception as e:
         return {
             "status": "error",
@@ -138,16 +151,22 @@ def update_opportunity(
     url = "https://api.nowcerts.com/api/Zapier/InsertOpportunity"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
-    body = {
-        "database_id": database_id
-    }
+    # Ensure proper type handling
+    if isinstance(needed_by, datetime):
+        needed_by = needed_by.strftime("%m/%d/%Y")
+    if isinstance(current_stage_due_date, datetime):
+        current_stage_due_date = current_stage_due_date.strftime("%m/%d/%Y")
+    if agency_commission is not None:
+        agency_commission = float(agency_commission)
+    if cost_of_lead is not None:
+        cost_of_lead = float(cost_of_lead)
 
-    optional_fields = {
-        "insured_first_name": insured_first_name,
-        "insured_last_name": insured_last_name,
+    payload = {
+        "database_id": database_id,
+        "created_from_renewal": created_from_renewal,
         "line_of_business_name": line_of_business_name,
         "needed_by": needed_by,
         "opportunity_stage_name": opportunity_stage_name,
@@ -160,27 +179,32 @@ def update_opportunity(
         "description": description,
         "insured_database_id": insured_database_id,
         "insured_email": insured_email,
+        "insured_first_name": insured_first_name,
+        "insured_last_name": insured_last_name,
         "insured_commercial_name": insured_commercial_name,
         "policy_numbers": policy_numbers,
         "cost_of_lead": cost_of_lead
     }
 
-    body.update({k: v for k, v in optional_fields.items() if v is not None})
+    print(f"Sending payload to NowCerts: {json.dumps(payload, indent=2)}")  # Log payload
+    print(f"Request Headers: {headers}")
 
     try:
-        response = requests.post(url, headers=headers, json=body)
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         return {
             "status": "updated",
             "database_id": database_id,
-            "updated_fields": body,
+            "updated_fields": payload,
             "response": response.json()
         }
     except requests.RequestException as e:
+        error_details = e.response.json() if e.response else str(e)
+        print(f"API Error: Status Code: {e.response.status_code if e.response else 'No response'}, Details: {json.dumps(error_details, indent=2)}")
         return {
             "status": "error",
             "message": "Opportunity update failed.",
-            "details": e.response.json() if e.response else str(e)
+            "details": error_details
         }
 
 def add_note_to_opportunity(opportunity_id: str, note: str) -> Dict:
@@ -189,7 +213,7 @@ def add_note_to_opportunity(opportunity_id: str, note: str) -> Dict:
         "opportunity_id": opportunity_id,
         "note": note
     }
-
+    
 def add_log_to_opportunity(opportunity_id: str, log: str) -> Dict:
     return {
         "status": "log_added",
