@@ -1,15 +1,26 @@
+import os
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+NC_API_BASE_URL = os.getenv("NC_API_BASE_URL")
+NC_API_GRANT_TYPE = os.getenv("NC_API_GRANT_TYPE")
+NC_API_USER = os.getenv("NC_API_USER")
+NC_API_PASSWORD = os.getenv("NC_API_PASSWORD")
+NC_API_CLIENT_ID = os.getenv("NC_API_CLIENT_ID")
 
 def get_access_token() -> str:
     """
     Retrieves an OAuth2 bearer token from NowCerts using hardcoded credentials.
     """
-    url = "https://api.nowcerts.com/api/token"
+    url = f"{NC_API_BASE_URL}/token"
     payload = {
-        "grant_type": "password",
-        "username": "api@api.api",
-        "password": "123456Qw",
-        "client_id": "ngAuthApp",
+        "grant_type": NC_API_GRANT_TYPE,
+        "username": NC_API_USER,
+        "password": NC_API_PASSWORD,
+        "client_id": NC_API_CLIENT_ID,
     }
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"

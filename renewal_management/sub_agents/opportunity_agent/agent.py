@@ -1,3 +1,4 @@
+import os
 from google.adk.agents import Agent
 from typing import Optional, Dict, List
 import requests
@@ -5,6 +6,12 @@ from urllib.parse import quote
 import json
 from datetime import datetime
 from utils import get_access_token
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+NC_API_BASE_URL = os.getenv("NC_API_BASE_URL")
 
 # --- Tool Functions ---
 
@@ -41,7 +48,7 @@ def create_renewal_opportunity(
             "details": str(e)
         }
 
-    url = "https://api.nowcerts.com/api/Zapier/InsertOpportunity"
+    url = f"{NC_API_BASE_URL}/Zapier/InsertOpportunity"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -118,7 +125,7 @@ def update_opportunity(
             "details": str(e)
         }
 
-    url = "https://api.nowcerts.com/api/Zapier/InsertOpportunity"
+    url = f"{NC_API_BASE_URL}/Zapier/InsertOpportunity"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -173,13 +180,6 @@ def update_opportunity(
             "message": "Opportunity update failed.",
             "details": error_details
         }
-
-def add_note_to_opportunity(opportunity_id: str, note: str) -> Dict:
-    return {
-        "status": "note_added",
-        "opportunity_id": opportunity_id,
-        "note": note
-    }
     
 def add_log_to_opportunity(opportunity_id: str, log: str) -> Dict:
     return {
@@ -212,7 +212,7 @@ def add_task_to_opportunity(
             "details": str(e)
         }
 
-    url = "https://api.nowcerts.com/api/Zapier/InsertTask"
+    url = f"{NC_API_BASE_URL}/Zapier/InsertTask"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -281,7 +281,7 @@ def get_filtered_opportunities(
             "details": str(e)
         }
 
-    base_url = "https://api.nowcerts.com/api/OpportunitiesList"
+    url = f"{NC_API_BASE_URL}/Zapier/OpportunitiesList"
     filter_criteria = {
         "id": id,
         "lineOfBusinessName": line_of_business_name,
@@ -331,10 +331,9 @@ def get_filtered_opportunities(
     }
 
     try:
-        response = requests.get(base_url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-        print("Final URL:", response.url)
 
         if isinstance(data, dict) and "value" in data and data["value"]:
             opportunity = data["value"][0]
@@ -395,7 +394,7 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
             "details": str(e)
         }
 
-    base_url = "https://api.nowcerts.com/api/OpportunitiesList"
+    url = f"{NC_API_BASE_URL}/Zapier/OpportunitiesList"
     params = {
         "$filter": f"id eq {opportunity_id}",
         "$count": "true",
@@ -409,10 +408,9 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
     }
 
     try:
-        response = requests.get(base_url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-        print("Final URL:", response.url)
 
         if isinstance(data, dict) and "value" in data and data["value"]:
             opportunity = data["value"][0]
@@ -478,7 +476,6 @@ Use tools as needed for each user request.
     tools=[
         create_renewal_opportunity,
         update_opportunity,
-        add_note_to_opportunity,
         add_log_to_opportunity,
         add_task_to_opportunity,
         get_filtered_opportunities,
