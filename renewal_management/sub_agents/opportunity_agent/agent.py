@@ -182,9 +182,6 @@ def update_opportunity(
         "cost_of_lead": cost_of_lead
     }
 
-    print(f"Sending payload to NowCerts: {json.dumps(payload, indent=2)}")  # Log payload
-    print(f"Request Headers: {headers}")
-
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
@@ -216,8 +213,6 @@ def add_log_to_opportunity(opportunity_id: str, log: str) -> Dict:
         "opportunity_id": opportunity_id,
         "log": log
     }
-
-from typing import Optional, Dict, List
 
 def add_task_to_opportunity(
     opportunity_database_id: str,
@@ -305,7 +300,6 @@ def get_filtered_opportunities(
     """
     try:
         access_token = get_access_token()
-        print(f"Access Token (partial): {access_token[:10]}...")  # Log partial token for debugging
     except Exception as e:
         return {
             "status": "error",
@@ -314,7 +308,6 @@ def get_filtered_opportunities(
         }
 
     base_url = "https://api.nowcerts.com/api/OpportunitiesList"
-    # Map function parameters to API field names
     filter_criteria = {
         "id": id,
         "lineOfBusinessName": line_of_business_name,
@@ -362,9 +355,6 @@ def get_filtered_opportunities(
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-
-    print(f"Input Parameters: {filter_criteria}")  # Log input parameters
-    print(f"OData Filter Query: {filter_query}")  # Log filter query
 
     try:
         response = requests.get(base_url, headers=headers, params=params)
@@ -437,7 +427,7 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
         "$count": "true",
         "$orderby": "id desc",
         "$skip": "0",
-        "$top": "10"
+        "$top": "1"
     }
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -498,7 +488,7 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
 opportunity_agent = Agent(
     name="opportunity_agent",
     model="gemini-2.0-flash",
-    description="Agent for managing sales and renewal opportunities.",
+    description="Agent for managing opportunities.",
     instruction="""
 You are an Opportunity Management AI Agent.
 
