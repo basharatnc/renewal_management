@@ -279,18 +279,33 @@ def add_task_to_opportunity(
         }
 
 def get_filtered_opportunities(
+    id: Optional[str] = None,
+    line_of_business_name: Optional[str] = None,
     opportunity_stage_name: Optional[str] = None,
-    insured_first_name: Optional[str] = None,
-    insured_last_name: Optional[str] = None,
-    needed_by_before: Optional[str] = None,
-    skip: int = 0,
-    top: int = 10
+    needed_by: Optional[str] = None,
+    current_stage_due_date: Optional[str] = None,
+    referral_source_name: Optional[str] = None,
+    referral_source_contact_name: Optional[str] = None,
+    win_probability: Optional[str] = None,
+    agency_commission: Optional[float] = None,
+    assigned_to: Optional[List[str]] = None,
+    description: Optional[str] = None,
+    insured_commercial_name: Optional[str] = None,
+    insured_email: Optional[str] = None,
+    policy_numbers: Optional[List[str]] = None,
+    created_from_renewal: Optional[bool] = None,
+    create_date: Optional[str] = None,
+    change_date: Optional[str] = None,
+    last_change_user_name: Optional[str] = None
 ) -> Dict:
     """
-    Fetch opportunities from NowCerts API using supported filter fields.
+    Fetches opportunity details by filtering using the provided criteria.
+    Returns both raw details and a bullet-style formatted string.
+    All parameters are optional to allow flexible filtering.
     """
     try:
         access_token = get_access_token()
+        print(f"Access Token (partial): {access_token[:10]}...")  # Log partial token for debugging
     except Exception as e:
         return {
             "status": "error",
@@ -299,52 +314,109 @@ def get_filtered_opportunities(
         }
 
     base_url = "https://api.nowcerts.com/api/OpportunitiesList"
-
-    # Build $filter string using Insert/Update Opportunity fields
-    filters = []
-    if opportunity_stage_name:
-        filters.append(f"OpportunityStageName eq '{opportunity_stage_name}'")
-    if insured_first_name:
-        filters.append(f"InsuredFirstName eq '{insured_first_name}'")
-    if insured_last_name:
-        filters.append(f"InsuredLastName eq '{insured_last_name}'")
-    if needed_by_before:
-        filters.append(f"NeededBy lt {needed_by_before}")  # Date must be formatted as yyyy-MM-dd
-
-    filter_string = " and ".join(filters)
-    encoded_filter = quote(filter_string) if filter_string else ""
-
-    # Final URL with pagination and filtering
-    query = f"?$count=true&$orderby=LineOfBusinessName asc&$skip={skip}&$top={top}"
-    if encoded_filter:
-        query += f"&$filter={encoded_filter}"
-
-    full_url = f"{base_url}(){query}"
-
-    headers = {
-        "Authorization": f"Bearer {access_token}"
+    # Map function parameters to API field names
+    filter_criteria = {
+        "id": id,
+        "lineOfBusinessName": line_of_business_name,
+        "opportunityStageName": opportunity_stage_name,
+        "neededBy": needed_by,
+        "currentStageDueDate": current_stage_due_date,
+        "referralSourceName": referral_source_name,
+        "referralSourceContactName": referral_source_contact_name,
+        "winProbability": win_probability,
+        "agencyCommission": agency_commission,
+        "assignedTo": assigned_to,
+        "description": description,
+        "insuredCommercialName": insured_commercial_name,
+        "insuredEmail": insured_email,
+        "policyNumbers": policy_numbers,
+        "createdFromRenewal": created_from_renewal,
+        "createDate": create_date,
+        "changeDate": change_date,
+        "lastChangeUserName": last_change_user_name
     }
 
+    # Construct OData $filter query from non-None criteria
+    filter_parts = []
+    for field, value in filter_criteria.items():
+        if value is not None:
+            if isinstance(value, str):
+                filter_parts.append(f"{field} eq '{value}'")
+            elif isinstance(value, bool):
+                filter_parts.append(f"{field} eq {str(value).lower()}")
+            elif isinstance(value, (int, float)):
+                filter_parts.append(f"{field} eq {value}")
+            elif isinstance(value, list):
+                value_str = ", ".join([f"'{v}'" if isinstance(v, str) else str(v) for v in value])
+                filter_parts.append(f"{field}/any(x: x in ({value_str}))")
+    filter_query = " and ".join(filter_parts) if filter_parts else ""
+
+    params = {
+        "$filter": filter_query,
+        "$count": "true",
+        "$orderby": "id desc",
+        "$skip": "0",
+        "$top": "3"
+    }
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    print(f"Input Parameters: {filter_criteria}")  # Log input parameters
+    print(f"OData Filter Query: {filter_query}")  # Log filter query
+
     try:
-        response = requests.get(full_url, headers=headers)
+        response = requests.get(base_url, headers=headers, params=params)
         response.raise_for_status()
-        return {
-            "status": "fetched",
-            "filters": {
-                "opportunity_stage_name": opportunity_stage_name,
-                "insured_first_name": insured_first_name,
-                "insured_last_name": insured_last_name,
-                "needed_by_before": needed_by_before
-            },
-            "opportunities": response.json()
-        }
+        data = response.json()
+        print("Final URL:", response.url)
+
+        if isinstance(data, dict) and "value" in data and data["value"]:
+            opportunity = data["value"][0]
+
+            formatted_output = "\n".join([
+                f"• Line of Business: {opportunity.get('lineOfBusinessName')}",
+                f"• Opportunity Stage: {opportunity.get('opportunityStageName')}",
+                f"• Needed By: {opportunity.get('neededBy')}",
+                f"• Current Stage Due Date: {opportunity.get('currentStageDueDate')}",
+                f"• Referral Source: {opportunity.get('referralSourceName')}",
+                f"• Referral Contact: {opportunity.get('referralSourceContactName')}",
+                f"• Win Probability: {opportunity.get('winProbability')}",
+                f"• Agency Commission: {opportunity.get('agencyCommission')}%",
+                f"• Assigned To: {', '.join(opportunity.get('assignedTo', []))}",
+                f"• Description: {opportunity.get('description')}",
+                f"• Insured Commercial Name: {opportunity.get('insuredCommercialName')}",
+                f"• Insured Email: {opportunity.get('insuredEmail')}",
+                f"• Policy Numbers: {', '.join(opportunity.get('policyNumbers', []))}",
+                f"• Created From Renewal: {opportunity.get('createdFromRenewal')}",
+                f"• Created On: {opportunity.get('createDate')}",
+                f"• Last Changed On: {opportunity.get('changeDate')}",
+                f"• Last Changed By: {opportunity.get('lastChangeUserName')}"
+            ])
+
+            return {
+                "status": "fetched",
+                "filter_criteria": filter_criteria,
+                "details": opportunity,
+                "formatted": formatted_output
+            }
+        else:
+            return {
+                "status": "not_found",
+                "filter_criteria": filter_criteria,
+                "message": "No opportunity found with the given filter criteria."
+            }
+
     except requests.RequestException as e:
+        error_details = e.response.json() if e.response else str(e)
+        print(f"API Error: Status Code: {e.response.status_code if e.response else 'No response'}, Details: {json.dumps(error_details, indent=2)}")
         return {
             "status": "error",
-            "message": "Failed to fetch opportunities.",
-            "details": e.response.json() if e.response else str(e)
+            "message": "Failed to fetch opportunity details.",
+            "details": error_details
         }
-
+        
 def get_opportunity_details(opportunity_id: str) -> Dict:
     """
     Fetches opportunity details by filtering using the opportunity ID.
