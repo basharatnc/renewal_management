@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from utils import get_access_token
 from dotenv import load_dotenv
+from urllib.parse import urlencode
 
 # Load environment variables
 load_dotenv()
@@ -394,21 +395,26 @@ def get_opportunity_details(opportunity_id: str) -> Dict:
             "details": str(e)
         }
 
-    url = f"{NC_API_BASE_URL}/Zapier/OpportunitiesList"
-    params = {
+    base_url = f"{NC_API_BASE_URL}/OpportunitiesList"  # Note: /Zapier removed if not needed
+    query_params = {
         "$filter": f"id eq {opportunity_id}",
         "$count": "true",
         "$orderby": "id desc",
         "$skip": "0",
-        "$top": "1"
+        "$top": "10"
     }
+
+    # Manually encode, preserving $ symbols
+    query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
+    url = f"{base_url}?{query_string}"
+
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
 
