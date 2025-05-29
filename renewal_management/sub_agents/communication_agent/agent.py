@@ -1,7 +1,15 @@
+import os
 from google.adk.agents import Agent
 from typing import Dict
 import re
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+EMAIL_BASE_URL = os.getenv("EMAIL_BASE_URL")
+EMAIL_SECRET_KEY = os.getenv("EMAIL_SECRET_KEY")
 
 # --- Tool 1: Identify Policy Issuance Intent ---
 def identify_policy_issuance_intent(email_text: str) -> dict:
@@ -64,10 +72,10 @@ def send_mail(recipient: str, subject: str, body: str) -> dict:
     """
     Sends an email using the FusionNow CRM email API.
     """
-    url = "https://staging.api.fusionnowcrm.com/api/open_api/v1/fusion_actions/send_email.json"
+    url = EMAIL_BASE_URL
     headers = {
         "Content-Type": "application/json",
-        "api-secret": "4eb46e76f89c1cdc6085e3a39794f5ed4374dee0157e393d9c7a2a7fc74f"
+        "api-secret": EMAIL_SECRET_KEY
     }
     payload = {
         "email": recipient,
