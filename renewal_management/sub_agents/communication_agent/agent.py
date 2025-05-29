@@ -19,7 +19,7 @@ def identify_policy_issuance_intent(email_text: str) -> dict:
 # --- Tool 2: Generate Mail Body using LLM ---
 def generate_mail_body(policy_info: dict) -> dict:
     """
-    Generate a formal email body based on provided policy information.
+    Generate an HTML-formatted email body with detailed policy information.
     """
     insured_name = policy_info.get("insured_name", "Client")
     policy_type = policy_info.get("policy_type", "General Insurance")
@@ -29,24 +29,35 @@ def generate_mail_body(policy_info: dict) -> dict:
     premium_amount = policy_info.get("premium_amount", "N/A")
     carrier_name = policy_info.get("carrier_name", "N/A")
 
-    body = f"""Dear {insured_name},
+    if isinstance(premium_amount, (int, float, str)) and not str(premium_amount).startswith("$"):
+        premium_amount = f"${premium_amount}"
 
-    We are pleased to inform you that your {policy_type} policy has been successfully issued.
+    html_body = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+        <p>Dear {insured_name},</p>
 
-    Here are the details of your policy:
+        <p>We are pleased to inform you that your <strong>{policy_type.lower()}</strong> policy has been successfully issued.</p>
 
-    • Policy Number   : {policy_number}  
-    • Effective Date  : {effective_date}  
-    • Expiration Date : {expiration_date}  
-    • Premium Amount  : ${premium_amount}  
-    • Carrier         : {carrier_name}
+        <p>Here are the details of your policy:</p>
 
-    If you have any questions or need further assistance, please feel free to contact us.
+        <table style="border-collapse: collapse; margin-left: 10px;">
+            <tr><td style="padding: 4px 8px;"><strong>Policy Number:</strong></td><td style="padding: 4px 8px;">{policy_number}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Effective Date:</strong></td><td style="padding: 4px 8px;">{effective_date}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Expiration Date:</strong></td><td style="padding: 4px 8px;">{expiration_date}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Premium Amount:</strong></td><td style="padding: 4px 8px;">{premium_amount}</td></tr>
+            <tr><td style="padding: 4px 8px;"><strong>Carrier:</strong></td><td style="padding: 4px 8px;">{carrier_name}</td></tr>
+        </table>
 
-    Best regards,  
-    Momentum AMP"""
+        <p>If you have any questions or need further assistance, please feel free to contact us.</p>
 
-    return {"mail_body": body}
+        <p>Best regards,<br>
+        <strong>Momentum AMP</strong></p>
+    </body>
+    </html>
+    """
+
+    return {"mail_body": html_body}
 
 # --- Tool 3: Send Mail using MAC (Mock version) ---
 def send_mail(recipient: str, subject: str, body: str) -> dict:
