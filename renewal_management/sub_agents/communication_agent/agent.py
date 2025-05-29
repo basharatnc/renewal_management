@@ -1,6 +1,7 @@
 from google.adk.agents import Agent
 from typing import Dict
 import re
+import requests
 
 # --- Tool 1: Identify Policy Issuance Intent ---
 def identify_policy_issuance_intent(email_text: str) -> dict:
@@ -22,29 +23,63 @@ def generate_mail_body(policy_info: dict) -> dict:
     """
     insured_name = policy_info.get("insured_name", "Client")
     policy_type = policy_info.get("policy_type", "General Insurance")
+    policy_number = policy_info.get("policy_number", "N/A")
+    effective_date = policy_info.get("effective_date", "N/A")
+    expiration_date = policy_info.get("expiration_date", "N/A")
+    premium_amount = policy_info.get("premium_amount", "N/A")
+    carrier_name = policy_info.get("carrier_name", "N/A")
 
     body = f"""Dear {insured_name},
 
-We are pleased to inform you that your {policy_type} policy has been successfully issued.
+    We are pleased to inform you that your {policy_type} policy has been successfully issued.
 
-Please find the policy document attached. Let us know if you have any questions.
+    Here are the details of your policy:
 
-Best regards,  
-Momentum AMP"""
-    
+    • Policy Number   : {policy_number}  
+    • Effective Date  : {effective_date}  
+    • Expiration Date : {expiration_date}  
+    • Premium Amount  : ${premium_amount}  
+    • Carrier         : {carrier_name}
+
+    If you have any questions or need further assistance, please feel free to contact us.
+
+    Best regards,  
+    Momentum AMP"""
+
     return {"mail_body": body}
 
 # --- Tool 3: Send Mail using MAC (Mock version) ---
 def send_mail(recipient: str, subject: str, body: str) -> dict:
     """
-    Simulates sending an email. Replace with real mail service integration in production.
+    Sends an email using the FusionNow CRM email API.
     """
-    print(f"\n--- SENDING EMAIL ---")
-    print(f"To      : {recipient}")
-    print(f"Subject : {subject}")
-    print(f"Body    :\n{body}")
-    print(f"--- EMAIL SENT ---\n")
-    return {"status": "sent", "recipient": recipient, "subject": subject}
+    url = "https://staging.api.fusionnowcrm.com/api/open_api/v1/fusion_actions/send_email.json"
+    headers = {
+        "Content-Type": "application/json",
+        "api-secret": "4eb46e76f89c1cdc6085e3a39794f5ed4374dee0157e393d9c7a2a7fc74f"
+    }
+    payload = {
+        "email": recipient,
+        "subject": subject,
+        "body": body
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        return {
+            "status": "sent",
+            "recipient": recipient,
+            "subject": subject,
+            "response": response.json()
+        }
+    except requests.RequestException as e:
+        return {
+            "status": "error",
+            "message": "Failed to send email.",
+            "details": str(e),
+            "response": e.response.json() if e.response else None
+        }
 
 # Communication Agent Definition
 communication_agent = Agent(
