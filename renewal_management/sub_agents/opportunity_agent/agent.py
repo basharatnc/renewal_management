@@ -319,20 +319,26 @@ def get_filtered_opportunities(
                 filter_parts.append(f"{field}/any(x: x in ({value_str}))")
     filter_query = " and ".join(filter_parts) if filter_parts else ""
 
-    params = {
+    base_url = f"{NC_API_BASE_URL}/OpportunitiesList"  # Note: /Zapier removed if not needed
+    query_params = {
         "$filter": filter_query,
         "$count": "true",
         "$orderby": "id desc",
         "$skip": "0",
         "$top": "3"
     }
+
+    # Manually encode, preserving $ symbols
+    query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
+    url = f"{base_url}?{query_string}"
+
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
 
