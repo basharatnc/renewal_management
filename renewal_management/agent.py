@@ -2,6 +2,7 @@ from google.adk.agents import Agent
 
 from .sub_agents.communication_agent.agent import communication_agent
 from .sub_agents.opportunity_agent.agent import opportunity_agent
+from .sub_agents.endorsement_agent.agent import endorsement_agent
 
 # --- Policy Renewal Management Agent Definition ---
 
@@ -29,10 +30,18 @@ Use these routing rules:
      - Assign or retrieve tasks
      - Filter or fetch opportunity details
 
+3. 📝 Endorsement Management:
+   - Use `endorsement_agent` for any of the following:
+     - Create or update service requests for policy changes
+     - List service requests with optional filtering
+     - Fetch details of a specific service request
+     - Update existing service requests
+
 Always be concise, professional, and context-aware when routing.
 """,
     sub_agents=[
         communication_agent,
-        opportunity_agent
+        opportunity_agent,
+        endorsement_agent
     ]
 )
